@@ -52,22 +52,23 @@ export default function App() {
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-fit scale on mobile and window resize
+  // Auto-fit skala kartu terhadap lebar area & ukuran layar.
   useEffect(() => {
-    // Skala default tampilan kartu = 40%. Di layar sempit (mobile), skala
-    // disesuaikan otomatis agar kartu (lebar 700px) pas dengan lebar area,
-    // dengan batas maksimum 40% dan minimum 0.3 supaya tetap terbaca.
-    const DEFAULT_SCALE = 0.4;
+    const CARD_WIDTH = 700;
     const updateScale = () => {
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth - 32; // padding stage
-        if (containerWidth < 700) {
-          const fitScale = containerWidth / 700; // agar kartu pas lebar area
-          const calculatedScale = Math.max(0.3, Math.min(DEFAULT_SCALE, fitScale));
-          setCardScale(calculatedScale);
-        } else {
-          setCardScale(DEFAULT_SCALE);
-        }
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.clientWidth - 32; // dikurangi padding stage
+      const isMobile = window.innerWidth < 1024; // < lg breakpoint
+
+      // Skala agar kartu pas dengan lebar area yang tersedia.
+      const fitScale = containerWidth / CARD_WIDTH;
+
+      if (isMobile) {
+        // Mobile/tablet: ringkas, maksimum 40% agar hemat ruang & sticky rapi.
+        setCardScale(Math.max(0.3, Math.min(0.4, fitScale)));
+      } else {
+        // Desktop: isi area dengan rapi, maksimum 100% (tidak diperbesar berlebihan).
+        setCardScale(Math.max(0.5, Math.min(1, fitScale)));
       }
     };
 
@@ -329,7 +330,7 @@ export default function App() {
             {/* Stage Canvas Area */}
             <div
               ref={containerRef}
-              className="bg-radial from-slate-100 to-slate-200/80 border border-slate-200/90 rounded-3xl p-3 sm:p-8 min-h-[220px] sm:min-h-[360px] lg:min-h-[460px] max-h-[38vh] sm:max-h-[46vh] lg:max-h-[calc(100vh-160px)] flex items-center justify-center overflow-auto relative shadow-inner"
+              className="bg-radial from-slate-100 to-slate-200/80 border border-slate-200/90 rounded-3xl p-3 sm:p-6 lg:p-8 min-h-[220px] sm:min-h-[320px] lg:min-h-[420px] max-h-[38vh] sm:max-h-[46vh] lg:max-h-none flex items-center justify-center overflow-auto relative shadow-inner"
             >
               {activeViewMode === 'card' ? (
                 <div className="relative flex items-center justify-center w-full py-2 sm:py-4 overflow-x-auto">
