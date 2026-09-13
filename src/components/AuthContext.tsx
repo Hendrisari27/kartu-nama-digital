@@ -14,13 +14,17 @@ import {
   deleteUser,
 } from '../utils/auth';
 
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' | 'wrong_password' };
+
 interface AuthContextValue {
   /** User yang sedang login, atau null. */
   currentUser: SafeUser | null;
   /** True selama proses inisialisasi (seed admin & baca sesi). */
   loading: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   /** Pendaftaran mandiri: membuat akun baru dengan role 'user' lalu langsung login. */
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -71,13 +75,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [refreshUsers]);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const user = await verifyCredentials(email, password);
-    if (!user) return false;
-    saveSession(user.id);
-    setCurrentUser(user);
-    return true;
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string): Promise<LoginResult> => {
+      const result = await verifyCredentials(email, password);
+      if (result.ok === false) return { ok: false, reason: result.reason };
+      saveSession(result.user.id);
+      setCurrentUser(result.user);
+      return { ok: true };
+    },
+    []
+  );
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {

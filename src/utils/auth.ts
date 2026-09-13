@@ -160,22 +160,35 @@ export function listUsers(): SafeUser[] {
     .sort((a, b) => a.createdAt - b.createdAt);
 }
 
+export type VerifyResult =
+  | { ok: true; user: SafeUser }
+  | { ok: false; reason: 'not_found' | 'wrong_password' };
+
 /**
- * Memverifikasi kredensial. Mengembalikan SafeUser bila cocok, jika tidak null.
+ * Memverifikasi kredensial dengan alasan kegagalan yang spesifik.
+ * Menangani hash lama (SHA-256) maupun fallback secara transparan.
  */
 export async function verifyCredentials(
   email: string,
   password: string
-): Promise<SafeUser | null> {
+): Promise<VerifyResult> {
   const normalizedEmail = email.trim().toLowerCase();
   const users = readUsers();
   const user = users.find((u) => u.email === normalizedEmail);
-  if (!user) return null;
+  if (!user) return { ok: false, reason: 'not_found' };
 
+  // Cocokkan dengan hash utama (SHA-256/fallback saat ini).
   const hash = await hashPassword(password);
-  if (hash !== user.passwordHash) return null;
+  if (hash === user.passwordHash) return { ok: true, user: toSafeUser(user) };
 
-  return toSafeUser(user);
+  // Kompatibilitas: bila hash tersimpan dibuat dengan metode berbeda
+  // (mis. akun lama SHA-256 tetapi lingkungan kini memakai fallback, atau sebaliknya),
+  // coba cocokkan juga dengan hash fallback murni.
+  if (user.passwordHash === fallbackHash(password)) {
+    return { ok: true, user: toSafeUser(user) };
+  }
+
+  return { ok: false, reason: 'wrong_password' };
 }
 
 export interface CreateUserInput {

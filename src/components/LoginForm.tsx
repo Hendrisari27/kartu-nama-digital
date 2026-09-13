@@ -56,14 +56,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setSubmitting(true);
     try {
       if (mode === 'login') {
-        const ok = await login(email, password);
-        if (ok) {
+        const result = await login(email, password);
+        if (result.ok === true) {
           showToast('Berhasil masuk. Selamat datang!', 'success');
           resetFields();
           onSuccess?.();
           onClose();
+        } else if (result.reason === 'not_found') {
+          showToast('Email belum terdaftar di perangkat ini. Silakan Daftar Akun dulu.', 'error');
+          setMode('register');
         } else {
-          showToast('Email atau password salah.', 'error');
+          showToast('Password salah. Coba lagi.', 'error');
         }
       } else {
         await register(name, email, password);
@@ -140,7 +143,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               <input
                 id="auth-email"
                 type="email"
+                inputMode="email"
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@perusahaan.com"
