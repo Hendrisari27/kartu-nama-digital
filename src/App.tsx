@@ -45,7 +45,7 @@ export default function App() {
   const [activeViewMode, setActiveViewMode] = useState<'card' | 'whatsapp'>('card');
   const [copiedImage, setCopiedImage] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [cardScale, setCardScale] = useState<number>(0.6);
+  const [cardScale, setCardScale] = useState<number>(0.4);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
@@ -54,14 +54,16 @@ export default function App() {
 
   // Auto-fit scale on mobile and window resize
   useEffect(() => {
-    // Skala default tampilan kartu = 60%. Di layar sempit, sesuaikan agar tetap
-    // muat tetapi tidak melebihi 60%.
-    const DEFAULT_SCALE = 0.6;
+    // Skala default tampilan kartu = 40%. Di layar sempit (mobile), skala
+    // disesuaikan otomatis agar kartu (lebar 700px) pas dengan lebar area,
+    // dengan batas maksimum 40% dan minimum 0.3 supaya tetap terbaca.
+    const DEFAULT_SCALE = 0.4;
     const updateScale = () => {
       if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth - 48; // padding
+        const containerWidth = containerRef.current.clientWidth - 32; // padding stage
         if (containerWidth < 700) {
-          const calculatedScale = Math.max(0.42, Math.min(DEFAULT_SCALE, containerWidth / 720));
+          const fitScale = containerWidth / 700; // agar kartu pas lebar area
+          const calculatedScale = Math.max(0.3, Math.min(DEFAULT_SCALE, fitScale));
           setCardScale(calculatedScale);
         } else {
           setCardScale(DEFAULT_SCALE);

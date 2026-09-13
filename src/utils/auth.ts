@@ -32,6 +32,17 @@ const DEFAULT_ADMIN = {
   role: 'admin' as UserRole,
 };
 
+// Akun bawaan yang selalu dipastikan ada (admin + user default).
+const SEED_ACCOUNTS: { name: string; email: string; password: string; role: UserRole }[] = [
+  DEFAULT_ADMIN,
+  {
+    name: 'Marketing Arcamanik',
+    email: 'marketing.arcamanik@herminahospitals.com',
+    password: 'mkt123',
+    role: 'user',
+  },
+];
+
 // Email admin bawaan lama yang perlu dimigrasikan otomatis ke kredensial baru
 // pada instalasi yang sudah terlanjur menyimpan akun admin versi sebelumnya.
 const LEGACY_ADMIN_EMAILS = ['admin@hermina.com'];
@@ -107,50 +118,55 @@ function toSafeUser(user: StoredUser): SafeUser {
 }
 
 /**
- * Memastikan akun admin default ada. Dipanggil sekali saat aplikasi dimulai.
+ * Memastikan akun bawaan (admin + user default) tersedia. Dipanggil sekali
+ * saat aplikasi dimulai.
  *
- * - Instalasi baru (localStorage kosong): buat akun admin bawaan.
- * - Instalasi lama: migrasikan akun admin bawaan lama (mis. admin@hermina.com)
- *   ke email & password terbaru agar kredensial di kode selalu berlaku.
+ * - Migrasi akun admin bawaan lama (mis. admin@hermina.com) ke kredensial admin terbaru.
+ * - Menambahkan setiap akun di SEED_ACCOUNTS yang belum ada, sehingga akun
+ *   admin & user default selalu bisa dipakai baik di instalasi baru maupun lama.
  */
 export async function ensureSeedAdmin(): Promise<void> {
-  const users = readUsers();
-  const defaultEmail = DEFAULT_ADMIN.email.toLowerCase();
+  let users = readUsers();
+  const defaultAdminEmail = DEFAULT_ADMIN.email.toLowerCase();
+  let changed = false;
 
-  // Instalasi baru: seed admin default.
-  if (users.length === 0) {
-    const passwordHash = await hashPassword(DEFAULT_ADMIN.password);
-    const admin: StoredUser = {
-      id: generateId(),
-      name: DEFAULT_ADMIN.name,
-      email: defaultEmail,
-      passwordHash,
-      role: DEFAULT_ADMIN.role,
-      createdAt: Date.now(),
-    };
-    writeUsers([admin]);
-    return;
+  // Migrasi akun admin bawaan lama -> admin terbaru (bila admin terbaru belum ada).
+  if (!users.some((u) => u.email === defaultAdminEmail)) {
+    const legacyIndex = users.findIndex(
+      (u) => u.role === 'admin' && LEGACY_ADMIN_EMAILS.includes(u.email)
+    );
+    if (legacyIndex !== -1) {
+      users = [...users];
+      users[legacyIndex] = {
+        ...users[legacyIndex],
+        name: DEFAULT_ADMIN.name,
+        email: defaultAdminEmail,
+        passwordHash: await hashPassword(DEFAULT_ADMIN.password),
+        role: 'admin',
+      };
+      changed = true;
+    }
   }
 
-  // Admin bawaan terbaru sudah ada: tidak perlu migrasi.
-  if (users.some((u) => u.email === defaultEmail)) return;
+  // Pastikan setiap akun bawaan ada.
+  for (const seed of SEED_ACCOUNTS) {
+    const email = seed.email.toLowerCase();
+    if (users.some((u) => u.email === email)) continue;
+    users = [
+      ...users,
+      {
+        id: generateId(),
+        name: seed.name,
+        email,
+        passwordHash: await hashPassword(seed.password),
+        role: seed.role,
+        createdAt: Date.now(),
+      },
+    ];
+    changed = true;
+  }
 
-  // Migrasi: perbarui akun admin bawaan lama ke kredensial terbaru.
-  const legacyIndex = users.findIndex(
-    (u) => u.role === 'admin' && LEGACY_ADMIN_EMAILS.includes(u.email)
-  );
-  if (legacyIndex === -1) return;
-
-  const passwordHash = await hashPassword(DEFAULT_ADMIN.password);
-  const migrated = [...users];
-  migrated[legacyIndex] = {
-    ...migrated[legacyIndex],
-    name: DEFAULT_ADMIN.name,
-    email: defaultEmail,
-    passwordHash,
-    role: 'admin',
-  };
-  writeUsers(migrated);
+  if (changed) writeUsers(users);
 }
 
 /** Mengembalikan seluruh user (tanpa hash password). */
