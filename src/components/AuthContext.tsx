@@ -55,7 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let active = true;
     (async () => {
-      await ensureSeedAdmin();
+      try {
+        await ensureSeedAdmin();
+      } catch (err) {
+        // Jangan sampai gagal seed membuat aplikasi macet di splash.
+        console.error('Gagal inisialisasi akun:', err);
+      }
       if (!active) return;
       setCurrentUser(getSessionUser());
       refreshUsers();

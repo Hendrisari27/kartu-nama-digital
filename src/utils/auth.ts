@@ -37,14 +37,43 @@ const DEFAULT_ADMIN = {
 const LEGACY_ADMIN_EMAILS = ['admin@hermina.com'];
 
 /**
- * Menghasilkan hash SHA-256 (hex) dari sebuah string menggunakan Web Crypto.
+ * Hash fallback (non-kriptografis) untuk lingkungan tanpa Web Crypto
+ * (mis. konteks non-secure). Diberi prefix agar bisa dibedakan dari hash SHA-256.
+ * Cukup untuk kontrol akses ringan frontend-only.
+ */
+function fallbackHash(password: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x1000193;
+  for (let i = 0; i < password.length; i++) {
+    const c = password.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 + c + i, 0x01000193) >>> 0;
+  }
+  return 'fb$' + h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
+}
+
+/**
+ * Menghasilkan hash password. Memakai Web Crypto (SHA-256) bila tersedia,
+ * dan jatuh ke fallback bila `crypto.subtle` tidak ada (mis. konteks non-secure)
+ * agar registrasi/login tetap berfungsi di lingkungan seperti preview iframe.
  */
 export async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  try {
+    if (
+      typeof crypto !== 'undefined' &&
+      crypto.subtle &&
+      typeof crypto.subtle.digest === 'function'
+    ) {
+      const data = new TextEncoder().encode(password);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+  } catch {
+    // Abaikan dan gunakan fallback di bawah.
+  }
+  return fallbackHash(password);
 }
 
 function generateId(): string {
@@ -63,7 +92,13 @@ function readUsers(): StoredUser[] {
 }
 
 function writeUsers(users: StoredUser[]): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  try {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  } catch {
+    throw new Error(
+      'Tidak dapat menyimpan akun. Nonaktifkan mode penyamaran/privat atau izinkan penyimpanan situs, lalu coba lagi.'
+    );
+  }
 }
 
 function toSafeUser(user: StoredUser): SafeUser {
