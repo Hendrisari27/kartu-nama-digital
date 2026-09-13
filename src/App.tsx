@@ -52,29 +52,35 @@ export default function App() {
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-fit skala kartu terhadap lebar area & ukuran layar.
+  // Auto-fit: kartu selalu mengisi lebar area yang tersedia (desktop & mobile).
   useEffect(() => {
     const CARD_WIDTH = 700;
+    const el = containerRef.current;
+    if (!el) return;
+
     const updateScale = () => {
-      if (!containerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth - 32; // dikurangi padding stage
-      const isMobile = window.innerWidth < 1024; // < lg breakpoint
+      // Lebar konten area stage (tanpa padding kiri-kanan).
+      const styles = window.getComputedStyle(el);
+      const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+      const available = el.clientWidth - padX;
+      if (available <= 0) return;
 
-      // Skala agar kartu pas dengan lebar area yang tersedia.
-      const fitScale = containerWidth / CARD_WIDTH;
-
-      if (isMobile) {
-        // Mobile/tablet: ringkas, maksimum 40% agar hemat ruang & sticky rapi.
-        setCardScale(Math.max(0.3, Math.min(0.4, fitScale)));
-      } else {
-        // Desktop: isi area dengan rapi, maksimum 100% (tidak diperbesar berlebihan).
-        setCardScale(Math.max(0.5, Math.min(1, fitScale)));
-      }
+      // Skala agar kartu pas lebar area; tidak diperbesar melebihi 100%.
+      const fitScale = available / CARD_WIDTH;
+      setCardScale(Math.max(0.2, Math.min(1, Number(fitScale.toFixed(3)))));
     };
 
     updateScale();
+
+    // ResizeObserver lebih andal daripada event resize window: terpicu saat
+    // lebar area benar-benar tersedia/berubah (mis. setelah layout final).
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
     window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
   }, []);
 
   const handleReset = () => {
