@@ -45,7 +45,7 @@ export default function App() {
   const [activeViewMode, setActiveViewMode] = useState<'card' | 'whatsapp'>('card');
   const [copiedImage, setCopiedImage] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
-  const [cardScale, setCardScale] = useState<number>(1);
+  const [cardScale, setCardScale] = useState<number>(0.6);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
@@ -54,14 +54,17 @@ export default function App() {
 
   // Auto-fit scale on mobile and window resize
   useEffect(() => {
+    // Skala default tampilan kartu = 60%. Di layar sempit, sesuaikan agar tetap
+    // muat tetapi tidak melebihi 60%.
+    const DEFAULT_SCALE = 0.6;
     const updateScale = () => {
       if (containerRef.current) {
         const containerWidth = containerRef.current.clientWidth - 48; // padding
         if (containerWidth < 700) {
-          const calculatedScale = Math.max(0.42, Math.min(1, containerWidth / 720));
+          const calculatedScale = Math.max(0.42, Math.min(DEFAULT_SCALE, containerWidth / 720));
           setCardScale(calculatedScale);
         } else {
-          setCardScale(1);
+          setCardScale(DEFAULT_SCALE);
         }
       }
     };
@@ -161,7 +164,7 @@ export default function App() {
           </div>
 
           {/* Quick CTAs */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-end flex-wrap gap-2">
             <button
               onClick={handleCopyImage}
               className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200"
@@ -202,10 +205,11 @@ export default function App() {
 
             <button
               onClick={() => setIsShareModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs lg:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95"
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs lg:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Kirim ke WhatsApp</span>
+              <span className="sm:hidden">Kirim WA</span>
+              <span className="hidden sm:inline">Kirim ke WhatsApp</span>
             </button>
 
             {/* Kelola Akun (khusus admin) */}
@@ -255,9 +259,10 @@ export default function App() {
 
       {/* Main Studio Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* Left / Center Column: Preview Stage (7 Cols on desktop) */}
-          <div className="lg:col-span-7 space-y-4">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          {/* Preview Stage (kartu / simulasi WhatsApp).
+              Sticky langsung sebagai anak grid agar tetap menempel sepanjang scroll editor di mobile. */}
+          <div className="w-full order-1 lg:order-none lg:col-span-7 self-start sticky top-[64px] sm:top-[72px] z-20 space-y-3 bg-slate-50/95 backdrop-blur-sm pb-3 -mx-1 px-1 rounded-b-2xl lg:top-20 lg:bg-transparent lg:backdrop-blur-none lg:pb-0 lg:mx-0 lg:px-0 lg:space-y-4">
             {/* View Switcher & Controls Bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-2 rounded-2xl border border-slate-200/80 shadow-2xs">
               {/* View Toggle */}
@@ -322,10 +327,10 @@ export default function App() {
             {/* Stage Canvas Area */}
             <div
               ref={containerRef}
-              className="bg-radial from-slate-100 to-slate-200/80 border border-slate-200/90 rounded-3xl p-4 sm:p-8 min-h-[460px] flex items-center justify-center overflow-hidden relative shadow-inner"
+              className="bg-radial from-slate-100 to-slate-200/80 border border-slate-200/90 rounded-3xl p-3 sm:p-8 min-h-[220px] sm:min-h-[360px] lg:min-h-[460px] max-h-[38vh] sm:max-h-[46vh] lg:max-h-[calc(100vh-160px)] flex items-center justify-center overflow-auto relative shadow-inner"
             >
               {activeViewMode === 'card' ? (
-                <div className="relative flex items-center justify-center w-full py-4 overflow-x-auto">
+                <div className="relative flex items-center justify-center w-full py-2 sm:py-4 overflow-x-auto">
                   {/* The exact rendered business card */}
                   <div
                     style={{
@@ -348,7 +353,11 @@ export default function App() {
                 </div>
               )}
             </div>
+          </div>
+          {/* /Preview Stage (sticky) */}
 
+          {/* Actions + Guide: di mobile tampil setelah editor; di desktop di kolom kiri baris ke-2 */}
+          <div className="w-full order-3 lg:order-none lg:col-span-7 space-y-4">
             {/* Action Bar Below Canvas */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               {/* Button 1: Send WhatsApp */}
@@ -438,8 +447,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Column: Customizer / Editor Panel (5 Cols on desktop) */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* Editor Panel (5 Cols on desktop). Di mobile: order-2 (setelah stage, sebelum actions). */}
+          <div className="w-full order-2 lg:order-none lg:col-span-5 space-y-4 lg:sticky lg:top-20 lg:self-start">
             {currentUser ? (
               <CardEditor
                 data={cardData}
