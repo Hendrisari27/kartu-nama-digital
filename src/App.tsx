@@ -480,14 +480,9 @@ export default function App() {
                   <LogIn className="w-4 h-4" />
                   <span>Edit Kartu Nama</span>
                 </button>
-                <p className="text-xs text-slate-400 mt-4">
-                  Belum punya akun?{' '}
-                  <button
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="font-semibold text-emerald-700 hover:underline"
-                  >
-                    Daftar Akun
-                  </button>
+                <p className="text-xs text-slate-400 mt-4 max-w-xs">
+                  Belum punya akun? Pembuatan akun baru dilakukan oleh admin. Silakan hubungi{' '}
+                  <span className="font-semibold text-slate-600">Hendri RS Hermina Arcamanik</span>.
                 </p>
               </div>
             )}
@@ -511,7 +506,7 @@ export default function App() {
         />
       )}
 
-      {/* Login / Daftar Akun Modal */}
+      {/* Login Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

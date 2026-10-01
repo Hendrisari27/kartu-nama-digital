@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
-import { LogIn, Mail, Lock, User, X, Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
+import { LogIn, Mail, Lock, X, Eye, EyeOff, Loader2, Info } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { useToast } from './Toast';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Dipanggil setelah login/daftar berhasil. */
+  /** Dipanggil setelah login berhasil. */
   onSuccess?: () => void;
 }
 
-type Mode = 'login' | 'register';
-
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const { showToast } = useToast();
 
-  const [mode, setMode] = useState<Mode>('login');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,54 +22,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   if (!isOpen) return null;
 
   const resetFields = () => {
-    setName('');
     setEmail('');
     setPassword('');
     setShowPassword(false);
   };
 
-  const switchMode = (next: Mode) => {
-    setMode(next);
-    resetFields();
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (mode === 'register' && !name.trim()) {
-      showToast('Nama wajib diisi.', 'info');
-      return;
-    }
     if (!email.trim() || !password) {
       showToast('Email dan password wajib diisi.', 'info');
-      return;
-    }
-    if (mode === 'register' && password.length < 6) {
-      showToast('Password minimal 6 karakter.', 'info');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (mode === 'login') {
-        const result = await login(email, password);
-        if (result.ok === true) {
-          showToast('Berhasil masuk. Selamat datang!', 'success');
-          resetFields();
-          onSuccess?.();
-          onClose();
-        } else if (result.reason === 'not_found') {
-          showToast('Email belum terdaftar di perangkat ini. Silakan Daftar Akun dulu.', 'error');
-          setMode('register');
-        } else {
-          showToast('Password salah. Coba lagi.', 'error');
-        }
-      } else {
-        await register(name, email, password);
-        showToast('Akun berhasil dibuat. Anda sudah masuk!', 'success');
+      const result = await login(email, password);
+      if (result.ok === true) {
+        showToast('Berhasil masuk. Selamat datang!', 'success');
         resetFields();
         onSuccess?.();
         onClose();
+      } else if (result.reason === 'not_found') {
+        showToast('Email belum terdaftar. Hubungi Hendri RS Hermina Arcamanik untuk membuat akun.', 'error');
+      } else {
+        showToast('Password salah. Coba lagi.', 'error');
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Terjadi kesalahan.', 'error');
@@ -82,8 +55,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     }
   };
 
-  const isRegister = mode === 'register';
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8">
@@ -91,16 +62,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         <div className="flex items-center justify-between px-6 py-4 bg-emerald-600 text-white">
           <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/80 flex items-center justify-center shadow-inner">
-              {isRegister ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+              <LogIn className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base leading-tight">
-                {isRegister ? 'Daftar Akun Baru' : 'Masuk untuk Edit Kartu'}
-              </h3>
+              <h3 className="font-bold text-base leading-tight">Masuk untuk Edit Kartu</h3>
               <p className="text-xs text-emerald-100">
-                {isRegister
-                  ? 'Buat akun untuk mulai mengedit kartu nama'
-                  : 'Login diperlukan untuk mengedit data kartu'}
+                Login diperlukan untuk mengedit data kartu
               </p>
             </div>
           </div>
@@ -115,26 +82,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {isRegister && (
-            <div>
-              <label htmlFor="auth-name" className="block text-xs font-semibold text-slate-700 mb-1">
-                Nama Lengkap
-              </label>
-              <div className="relative">
-                <input
-                  id="auth-name"
-                  type="text"
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Nama Anda"
-                  className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-hidden font-medium text-slate-900"
-                />
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              </div>
-            </div>
-          )}
-
           <div>
             <label htmlFor="auth-email" className="block text-xs font-semibold text-slate-700 mb-1">
               Email
@@ -165,10 +112,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               <input
                 id="auth-password"
                 type={showPassword ? 'text' : 'password'}
-                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isRegister ? 'Minimal 6 karakter' : 'Masukkan password'}
+                placeholder="Masukkan password"
                 className="w-full pl-9 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-hidden font-medium text-slate-900"
               />
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -190,41 +137,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isRegister ? (
-              <UserPlus className="w-4 h-4" />
             ) : (
               <LogIn className="w-4 h-4" />
             )}
-            <span>{submitting ? 'Memproses...' : isRegister ? 'Daftar & Masuk' : 'Masuk'}</span>
+            <span>{submitting ? 'Memproses...' : 'Masuk'}</span>
           </button>
 
-          {/* Toggle login/daftar */}
-          <div className="text-center text-xs text-slate-500">
-            {isRegister ? (
-              <>
-                Sudah punya akun?{' '}
-                <button
-                  type="button"
-                  onClick={() => switchMode('login')}
-                  className="font-semibold text-emerald-700 hover:underline"
-                >
-                  Masuk di sini
-                </button>
-              </>
-            ) : (
-              <>
-                Belum punya akun?{' '}
-                <button
-                  type="button"
-                  onClick={() => switchMode('register')}
-                  className="font-semibold text-emerald-700 hover:underline"
-                >
-                  Daftar Akun
-                </button>
-              </>
-            )}
+          {/* Info: pendaftaran hanya oleh admin */}
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11.5px] text-slate-600 leading-relaxed">
+            <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <p>
+              Belum punya akun? Pembuatan akun baru dilakukan oleh admin. Silakan hubungi{' '}
+              <span className="font-semibold text-slate-800">Hendri RS Hermina Arcamanik</span>.
+            </p>
           </div>
-
         </form>
       </div>
     </div>

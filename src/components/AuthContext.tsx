@@ -25,8 +25,6 @@ interface AuthContextValue {
   loading: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
-  /** Pendaftaran mandiri: membuat akun baru dengan role 'user' lalu langsung login. */
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   /** Daftar user terkini (untuk panel admin). */
   users: SafeUser[];
@@ -86,16 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     []
   );
 
-  const register = useCallback(
-    async (name: string, email: string, password: string) => {
-      const created = await createUser({ name, email, password, role: 'user' });
-      saveSession(created.id);
-      setCurrentUser(created);
-      refreshUsers();
-    },
-    [refreshUsers]
-  );
-
   const logout = useCallback(() => {
     clearSession();
     setCurrentUser(null);
@@ -132,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     isAdmin: currentUser?.role === 'admin',
     login,
-    register,
     logout,
     users,
     refreshUsers,
