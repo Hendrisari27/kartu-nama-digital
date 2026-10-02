@@ -30,13 +30,13 @@ export interface BusinessCardData {
 }
 
 export const DEFAULT_CARD_DATA: BusinessCardData = {
-  fullName: 'Hendriana, ST',
-  jobTitle: 'Kepala Urusan Marketing dan Komunikasi',
-  companyName: 'PT Medikaloka Arcamanik',
+  fullName: 'Isi Nama Anda',
+  jobTitle: 'Jabatan Anda Sekarang',
+  companyName: 'RS Hermina Arcamanik',
   address: 'Jl. AH. Nasution No.50, Kota Bandung, 40291',
   mapsUrl: 'https://share.google/yPSSdvbZ4LVIhJmqw',
   email: 'marketing.arcamanik@herminahospitals.com',
-  phone: '083820080081',
+  phone: 'Nomor WhatsApp Aktif Anda',
   website: 'https://herminahospitals.com/id/branch/hermina-arcamanik',
   qrTargetType: 'whatsapp',
   customQrUrl: '',
@@ -47,6 +47,6 @@ export const DEFAULT_CARD_DATA: BusinessCardData = {
   bgStyle: 'hermina_geometric',
   customBgUrl: '',
   customBgColor: '#ffffff',
-  bgOpacity: 100,
+  bgOpacity: 50,
   waGreeting: 'Halo, salam hangat! Berikut kartu nama digital saya:',
 };
